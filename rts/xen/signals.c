@@ -403,14 +403,13 @@ void runtime_block(unsigned long milliseconds)
       if(monotonic_clock() < until) {
         vcpu_set_singleshot_timer_t t = { .timeout_abs_ns = until, .flags = VCPU_SSHOTTMR_future };
         result = HYPERCALL_vcpu_op(VCPUOP_set_singleshot_timer,vcpu_num(),&t);
-        if (result >= 0) {
+        if (result >= 0 && !signals_pending()) {
             assert(HYPERCALL_sched_op(SCHEDOP_block, 0) >= 0);
-            force_hypervisor_callback();
-            now = monotonic_clock();
-        }
+        } else allow_signals(1);
       } else allow_signals(1);
     } else allow_signals(1);
   }
+  force_hypervisor_callback();
 }
 
 int stg_sig_install(int sig, int spi, void *mask __attribute__((unused)))
